@@ -1,0 +1,36 @@
+To get your Pi-Alert Station up and running, follow these steps in order:
+
+Phase 1: Keep the Main Server Running
+Your main CareerLens server (on your Windows PC) must be running so the Pi can "talk" to it.
+
+Open a terminal in your project folder on your PC.
+Run the server (if it's not already running):
+powershell
+.\venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+(Note: Using --host 0.0.0.0 is important so the Pi can find it on your network).
+Phase 2: Set Up the Raspberry Pi
+Transfer the script: Copy the file scripts/pi_alert_station.py from your PC to your Raspberry Pi.
+Find your PC's IP Address:
+On your Windows PC, open a terminal and type ipconfig.
+Look for "IPv4 Address" (it usually looks like 192.168.1.XX).
+Edit the script on the Pi:
+Open pi_alert_station.py on your Raspberry Pi.
+At the top, change SERVER_IP to your PC's IP address.
+Change USER_EMAIL to the email you used on the website.
+Phase 3: Run the Pi Alert Station
+On your Raspberry Pi terminal, run these commands:
+
+Install the display libraries:
+
+bash
+sudo apt-get update
+sudo apt-get install python3-pil python3-pil.imagetk
+pip install requests qrcode
+Start the Alert Station:
+
+bash
+python3 pi_alert_station.py
+What will happen:
+The Pi screen will turn Dark Blue/Black and show "// SYSTEM SCANNING" with a clock.
+Go to your website, upload a CV, and let it finish.
+As soon as a job match over 90% is detected (either during the upload or by the background scan), your Pi will Flash, Beep, and show the Rich Alert Card with the QR code!

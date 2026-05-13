@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  careerlens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: careerlens-api
+    ports:
+      - "8000:8000"
+    environment:
+      # API Keys
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - RAPID_API_KEY=${RAPID_API_KEY}
+      
+      # Database
+      - DATABASE_URL=${DATABASE_URL}
+      
+      # LLM Configuration
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - OPENROUTER_HTTP_REFERER=${OPENROUTER_HTTP_REFERER}
+      - OPENROUTER_APP_TITLE=${OPENROUTER_APP_TITLE:-CareerLens}
+    
+    volumes:
+      - ./user_preferences.json:/app/user_preferences.json
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

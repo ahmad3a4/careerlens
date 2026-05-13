@@ -1,0 +1,640 @@
+================================================================================
+                    CV MATCHER V2 - CODEBASE SUMMARY
+================================================================================
+Project: CareerLens VPRO - AI-Powered Career Matching Platform
+Created: 2024-2025
+Language: Python 3.11
+Framework: FastAPI
+Last Updated: May 12, 2026
+
+================================================================================
+                              PROJECT OVERVIEW
+================================================================================
+
+CareerLens VPRO is an AI-powered career matching system that:
+- Analyzes CVs (DOCX format) and extracts structured data
+- Searches for relevant job opportunities via RapidAPI
+- Scores jobs based on CV skills vs job requirements using Gemini AI
+- Generates PDF/DOCX reports with career analysis and salary predictions
+- Provides personalized learning roadmaps for skill gaps
+- Supports background job scheduling for continuous monitoring
+
+Key Features:
+✓ CV Parsing & Skill Extraction
+✓ AI-Powered Job Matching & Scoring
+✓ Salary Prediction (CatBoost ML Model)
+✓ PDF/DOCX Report Generation
+✓ Learning Roadmaps
+✓ Background Job Scheduler
+✓ User Preferences Storage
+✓ Database Support (SQLite, PostgreSQL, MySQL)
+
+================================================================================
+                           PROJECT STRUCTURE
+================================================================================
+
+ROOT DIRECTORY (c:\Users\mofqt\OneDrive\Desktop\cv_matcher_V2)
+├── app/                              # Main application package
+│   ├── __init__.py
+│   ├── main.py                       # FastAPI application entry point
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py                 # Configuration management
+│   │   ├── database.py               # SQLAlchemy ORM & DB models
+│   │   ├── init_db.py                # Database initialization
+│   │   └── llm.py                    # LLM (Gemini) integration
+│   ├── research/                     # ML Models & Research
+│   │   ├── __init__.py
+│   │   ├── trainer.py                # Model training scripts
+│   │   ├── careerlens_salary_model.cbm  # CatBoost salary prediction model
+│   │   ├── careerlens_metadata.pkl   # Model metadata
+│   │   └── data/
+│   │       └── final_master_dataset.csv  # Training dataset
+│   ├── services/                     # Business logic services
+│   │   ├── __init__.py
+│   │   ├── background.py             # Background job scheduling (APScheduler)
+│   │   ├── cv_parser.py              # DOCX CV parsing
+│   │   ├── extractor.py              # CV data extraction
+│   │   ├── job_search.py             # RapidAPI job search
+│   │   ├── matcher.py                # Initial job matching logic
+│   │   ├── scorer.py                 # Gemini AI scoring
+│   │   ├── roadmap.py                # Learning roadmap generation
+│   │   ├── pdf_generator.py          # ReportLab PDF generation
+│   │   ├── docx_generator.py         # python-docx DOCX generation
+│   │   └── salary_predictor.py       # CatBoost salary prediction
+│   └── static/
+│       └── html/
+│           ├── careerlens.html       # Main UI
+│           └── index.html            # Landing page
+├── alembic/                          # Database migrations
+│   ├── __init__.py
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       ├── __init__.py
+│       └── 001_initial_schema.py     # Initial DB schema migration
+├── main.py                           # Root entry point (reference)
+├── Dockerfile                        # Multi-stage Docker build
+├── docker-compose.yml                # Docker Compose orchestration
+├── docker-entrypoint.sh              # Docker startup script
+├── alembic.ini                       # Alembic configuration
+├── requirements.txt                  # Python dependencies
+├── .env.example                      # Environment variables template
+├── .gitignore                        # Git ignore rules
+├── .dockerignore                     # Docker build ignore
+├── README.md                         # Project documentation
+└── Documentation files...            # Setup guides, references
+
+================================================================================
+                            KEY TECHNOLOGIES
+================================================================================
+
+Backend Framework:
+- FastAPI 0.136.1 - Modern web framework with async support
+- Uvicorn 0.46.0 - ASGI server
+- Starlette 1.0.0 - ASGI toolkit
+
+Database:
+- SQLAlchemy 2.0.22 - ORM for database abstraction
+- Alembic 1.14.0 - Database migration tool
+- psycopg2-binary 2.9.10 - PostgreSQL adapter
+- SQLite - Default local database
+
+AI/ML:
+- google-generativeai 0.8.6 - Google Gemini API
+- CatBoost - Gradient boosting for salary prediction
+- sentence-transformers 5.4.1 - Text embeddings
+- scikit-learn 1.8.0 - ML utilities
+
+Document Processing:
+- python-docx 1.2.0 - DOCX reading/writing
+- ReportLab 4.5.0 - PDF generation
+- lxml 6.1.0 - XML processing
+
+External APIs:
+- OpenRouter (via httpx) - LLM gateway
+- RapidAPI - Job search API
+- Google Gemini API - AI scoring
+
+Job Scheduling:
+- APScheduler 3.10.0 - Background job scheduling
+
+Utilities:
+- python-dotenv 1.2.2 - Environment variables
+- pydantic 2.13.3 - Data validation
+- tenacity 9.1.4 - Retry logic
+
+================================================================================
+                         CORE API ENDPOINTS
+================================================================================
+
+Frontend Routes:
+  GET /                         - Redirect to main page
+  GET /index                    - Serve index.html
+  GET /front                    - Serve front_page.html
+  GET /careerlens.html          - Serve CareerLens UI
+
+User Management:
+  POST /save-user               - Save user preferences & schedule jobs
+  POST /save-preferences        - Legacy preference storage
+
+Job Matching Pipeline:
+  POST /ultimate-match          - Complete matching pipeline
+    Input: DOCX file, email, job_query
+    Output: candidate_summary, job_leaderboard, learning_roadmap
+    Features: CV parsing, job search, AI scoring, salary prediction
+
+Report Generation:
+  POST /generate-pdf            - Generate PDF report
+  POST /generate-docx           - Generate DOCX report
+
+Scheduling:
+  POST /run-trigger             - Manually trigger job search for all users
+
+Health Check:
+  GET /health                   - API health status
+
+================================================================================
+                        DATA MODELS & SCHEMAS
+================================================================================
+
+User Model (Database):
+- id: Integer (PK)
+- email: String (unique)
+- job_query: String
+- alert_interval_hours: Integer
+- candidate_summary: JSON
+- best_score: Integer
+- created_at: DateTime
+- last_triggered_at: DateTime
+
+SeenJob Model (Database):
+- id: Integer (PK)
+- user_id: Foreign Key
+- job_link: String
+- job_score: Integer
+
+CV Data Structure:
+{
+  "name": str,
+  "email": str,
+  "phone": str,
+  "education": str,
+  "years_exp": int,
+  "skills": [{"name": str, "type": str}],
+  "experience_level": str,
+  "industry": str
+}
+
+Job Entry:
+{
+  "title": str,
+  "company": str,
+  "link": str,
+  "description": str,
+  "score": str,
+  "raw_score": int,
+  "predicted_salary": str (JOD),
+  "verdict": str,
+  "match_summary": str,
+  "missing_skills": list,
+  "application_message": str,
+  "final_advice": str
+}
+
+================================================================================
+                        KEY SERVICE MODULES
+================================================================================
+
+1. CV PARSER (app/services/cv_parser.py)
+   - Reads DOCX files using python-docx
+   - Extracts text and structure
+   - Returns structured CV dictionary
+
+2. CV EXTRACTOR (app/services/extractor.py)
+   - Processes structured CV data
+   - Extracts: name, email, skills, education, experience
+   - Uses AI for intelligent extraction
+
+3. JOB SEARCH (app/services/job_search.py)
+   - Calls RapidAPI for job listings
+   - Filters results by query
+   - Returns top 3 matching jobs
+
+4. SCORER (app/services/scorer.py)
+   - Uses Google Gemini API for AI scoring
+   - Compares CV skills vs job requirements
+   - Generates match_summary, verdict, missing_skills
+   - Returns scores 0-100
+
+5. SALARY PREDICTOR (app/services/salary_predictor.py)
+   - Loads CatBoost ML model from research/
+   - Takes: job_title, industry, experience, education, location, remote_ratio
+   - Returns: Predicted salary in JOD
+   - Uses metadata for market classification
+
+6. ROADMAP (app/services/roadmap.py)
+   - Analyzes missing skills
+   - Generates learning steps
+   - Suggests resources and durations
+   - Provides upskilling path
+
+7. PDF GENERATOR (app/services/pdf_generator.py)
+   - ReportLab-based PDF generation
+   - Includes: Executive summary, skills analysis, job leaderboard
+   - Reports salary predictions
+   - Professional formatting with color coding
+
+8. DOCX GENERATOR (app/services/docx_generator.py)
+   - python-docx-based DOCX generation
+   - Similar content to PDF
+   - Editable Word document output
+   - Includes salary predictions in job table
+
+9. BACKGROUND SCHEDULER (app/services/background.py)
+   - APScheduler for continuous job monitoring
+   - Schedules user-specific job searches
+   - Sends notifications when matches found
+   - Updates database with new matches
+
+================================================================================
+                        DATABASE SCHEMA
+================================================================================
+
+Managed by Alembic migrations (alembic/versions/)
+
+USER Table:
+  ├── id: INT PRIMARY KEY AUTO_INCREMENT
+  ├── email: VARCHAR UNIQUE
+  ├── job_query: VARCHAR
+  ├── alert_interval_hours: INT
+  ├── candidate_summary: JSON
+  ├── best_score: INT
+  ├── created_at: DATETIME
+  └── last_triggered_at: DATETIME
+
+SEENJOB Table:
+  ├── id: INT PRIMARY KEY AUTO_INCREMENT
+  ├── user_id: INT FOREIGN KEY → USER.id
+  ├── job_link: VARCHAR
+  └── job_score: INT
+
+Migration Process:
+  1. Define models in app/core/database.py
+  2. Create migration: alembic revision --autogenerate
+  3. Run migration: alembic upgrade head
+  4. Docker handles migrations on startup
+
+================================================================================
+                        CONFIGURATION
+================================================================================
+
+Environment Variables (.env):
+  REQUIRED:
+    - OPENROUTER_API_KEY: LLM gateway key
+    - RAPID_API_KEY: Job search API key
+  
+  OPTIONAL:
+    - DATABASE_URL: DB connection string (defaults to SQLite)
+    - OPENROUTER_MODEL: LLM model (defaults: openai/gpt-4o-mini)
+    - OPENROUTER_BASE_URL: OpenRouter endpoint
+    - OPENROUTER_HTTP_REFERER: HTTP referer header
+    - OPENROUTER_APP_TITLE: App identifier
+
+Config Loading:
+  - app/core/config.py reads from .env
+  - .env file required (copy from .env.example)
+  - Environment variables override defaults
+
+================================================================================
+                        DOCKER DEPLOYMENT
+================================================================================
+
+Multi-Stage Build:
+  Stage 1 (Builder):
+    - Python 3.11 slim base
+    - Installs build dependencies
+    - Creates virtual environment
+    - Installs all Python packages
+  
+  Stage 2 (Runtime):
+    - Python 3.11 slim base
+    - Copies venv from builder
+    - Reduces final image size
+    - Runs as non-root user (appuser)
+
+Startup Sequence:
+  1. Docker builds image from Dockerfile
+  2. docker-compose.yml orchestrates services
+  3. Container startup runs docker-entrypoint.sh
+  4. Entrypoint runs Alembic migrations
+  5. Uvicorn starts API server on port 8000
+  6. Health check validates endpoint every 30s
+
+Volume Mounts:
+  - ./user_preferences.json:/app/user_preferences.json
+  - Persists user preferences between restarts
+
+Health Check:
+  - Endpoint: GET http://localhost:8000/health
+  - Interval: 30s, Timeout: 10s, Retries: 3
+  - Start grace period: 5s
+
+Environment Variables in Container:
+  - All variables from .env passed to container
+  - API keys secured via environment
+  - DATABASE_URL for connection string
+
+================================================================================
+                        DEPLOYMENT WORKFLOW
+================================================================================
+
+From Fresh Clone:
+  1. git clone <repo-url>
+  2. cd cv_matcher_V2
+  3. cp .env.example .env
+  4. Fill in API keys in .env
+  5. docker-compose up --build
+  6. Access API at http://localhost:8000
+
+Local Development:
+  1. python -m venv venv
+  2. source venv/bin/activate (Linux/Mac) or .\venv\Scripts\Activate (Windows)
+  3. pip install -r requirements.txt
+  4. cp .env.example .env (fill in keys)
+  5. alembic upgrade head
+  6. uvicorn app.main:app --reload
+
+Database Migration:
+  1. Models defined in app/core/database.py
+  2. alembic revision --autogenerate -m "description"
+  3. Review generated migration file
+  4. alembic upgrade head
+
+Production Considerations:
+  - Use managed database (PostgreSQL/MySQL)
+  - Store .env securely (not in git)
+  - Use environment-based configuration
+  - Scale with multiple uvicorn workers
+  - Use reverse proxy (Nginx) for load balancing
+  - Enable HTTPS/TLS
+  - Monitor health checks regularly
+
+================================================================================
+                        WORKFLOW & DATA FLOW
+================================================================================
+
+Complete Job Matching Pipeline:
+
+  1. USER UPLOADS CV (DOCX)
+     └─> POST /ultimate-match or /generate-pdf or /generate-docx
+  
+  2. CV PARSING
+     └─> cv_parser.py reads DOCX file
+         └─> Returns structured content
+  
+  3. DATA EXTRACTION
+     └─> extractor.py processes content
+         └─> Extracts: name, skills, education, experience
+  
+  4. JOB SEARCH
+     └─> job_search.py queries RapidAPI
+         └─> Returns top 3 matching jobs
+  
+  5. AI SCORING (Multi-threaded)
+     └─> For each job:
+         ├─> scorer.py calls Gemini API
+         ├─> Compares CV skills vs job description
+         ├─> Generates match_score (0-100)
+         ├─> Identifies missing_skills
+         └─> Creates verdict (Apply Now/Apply With Caution/Skip)
+  
+  6. SALARY PREDICTION
+     └─> For each job:
+         ├─> salary_predictor.py calls CatBoost model
+         ├─> Takes: job_title, industry, experience, education, location
+         └─> Returns: predicted salary in JOD
+  
+  7. RANKING
+     └─> Sort by raw_score descending
+         └─> Top 3 returned
+  
+  8. LEARNING ROADMAP
+     └─> roadmap.py analyzes top job
+         └─> Identifies missing skills
+         └─> Suggests learning path with resources
+  
+  9. REPORT GENERATION
+     └─> pdf_generator.py or docx_generator.py
+         ├─> Executive summary
+         ├─> Skills analysis
+         ├─> Job leaderboard WITH SALARY PREDICTIONS
+         ├─> Top job analysis
+         └─> Learning roadmap
+  
+  10. USER RECEIVES REPORT
+      └─> PDF or DOCX with full analysis
+
+Background Job Scheduling:
+  1. User saves preferences via /save-user
+  2. background.py schedules job search
+  3. APScheduler runs at specified intervals
+  4. New jobs searched and scored
+  5. Notifications sent for matches > threshold
+  6. Database updated with new SeenJob entries
+
+================================================================================
+                        SALARY PREDICTION MODEL
+================================================================================
+
+Location: app/research/careerlens_salary_model.cbm (CatBoost)
+
+Input Features:
+  1. job_title (str) - Position name
+  2. industry (str) - Industry/sector
+  3. experience (str) - Years of experience level
+  4. education (str) - Education qualification
+  5. location (str) - Job location code
+  6. market_type (str) - "high_market" or "local_market"
+  7. remote_ratio (int) - 0-100 remote percentage
+  8. is_remote (bool) - Binary remote flag
+
+Output:
+  - Predicted salary in JOD (Jordanian Dinar)
+  - Rounded to 2 decimal places
+
+Training Data:
+  - final_master_dataset.csv (historical salary data)
+  - Market classifications in careerlens_metadata.pkl
+  - High-market countries: US, UK, CA, DE
+
+Integration Points:
+  - Called in /ultimate-match endpoint
+  - Called in /generate-pdf endpoint
+  - Called in /generate-docx endpoint
+  - Results displayed in job tables and reports
+
+================================================================================
+                        REPORT GENERATION
+================================================================================
+
+PDF Report (ReportLab):
+  File: app/services/pdf_generator.py
+  
+  Sections:
+    1. Cover Page
+       ├─ Brand: CareerLens VPRO
+       ├─ Title: Career Match Report
+       ├─ Date: Generated timestamp
+       └─ User info: Education, experience, location
+    
+    2. Executive Summary Table
+       ├─ Top Match Score
+       ├─ Top Matched Role & Company
+       ├─ Verdict
+       ├─ Jobs Analyzed
+       ├─ Ready to Apply count
+       ├─ Skills Detected
+       └─ Education & Experience
+    
+    3. Skills Analysis
+       ├─ Confirmed Skills
+       ├─ Inferred from Experience
+       └─ Missing - High Priority
+    
+    4. Job Leaderboard (NEW: WITH SALARY)
+       ├─ # | Role | Company | Score | Salary (JOD) | Verdict
+       └─ Top 3 jobs with predictions
+    
+    5. Top Match Analysis
+       ├─ Position: title at company
+       ├─ Match Summary
+       ├─ Application Message
+       └─ Final Advice
+    
+    6. Upskilling Roadmap
+       ├─ Step 1-N with skills to learn
+       ├─ Learning resources
+       └─ Estimated durations
+    
+    7. Footer: Generation info & timestamp
+
+DOCX Report (python-docx):
+  File: app/services/docx_generator.py
+  
+  Identical content to PDF:
+    - Professional formatting
+    - Tables with alternating row colors
+    - Editable Microsoft Word format
+    - Supports comment/annotation
+    - Can be modified by users
+    - Same salary prediction display
+
+Colors & Styling:
+  - Black (#000000) - Primary text
+  - Strong Blue (#1A44D4) - Headers & positive
+  - Amber (#C47D00) - Caution/warning
+  - Red (#D32F2F) - Critical/skip
+  - Light Gray (#F2F2F7) - Zebra striping
+
+================================================================================
+                        FILE CLEANUP & OPTIMIZATION
+================================================================================
+
+Removed Unnecessary Files:
+  ✓ migrate.bat - Superseded by Docker
+  ✓ migrate.sh - Superseded by Docker
+
+Files Preserved:
+  ✓ .env.example - Template for configuration
+  ✓ .gitignore - Git exclusions
+  ✓ .dockerignore - Docker build exclusions
+  ✓ README.md - Complete documentation
+  ✓ alembic/ - Database migrations
+  ✓ docker-entrypoint.sh - Startup script
+
+Optimizations:
+  ✓ Multi-stage Docker build reduces image size
+  ✓ Requirements pinned to specific versions
+  ✓ Virtual environment in Docker for isolation
+  ✓ Non-root user (appuser) for security
+  ✓ Health checks for monitoring
+
+================================================================================
+                        FUTURE ENHANCEMENTS
+================================================================================
+
+Potential Improvements:
+  1. Multiple CV upload support
+  2. Profile comparison (friend vs you)
+  3. Skill marketplace integration
+  4. Salary trend analysis
+  5. Advanced filtering by location, company, etc.
+  6. Email notifications with report attachments
+  7. Skill certification recommendations
+  8. LinkedIn integration
+  9. Real-time job alerts
+  10. Export to multiple formats (Excel, etc.)
+
+Technical Debt:
+  - Add comprehensive unit tests
+  - Implement API rate limiting
+  - Add request validation decorators
+  - Improve error handling & logging
+  - Add API versioning (/v1/, /v2/)
+  - Implement caching layer (Redis)
+  - Add monitoring & analytics
+
+================================================================================
+                        TROUBLESHOOTING
+================================================================================
+
+Common Issues:
+
+1. "No jobs found from API"
+   - Check RAPID_API_KEY is valid
+   - Verify RapidAPI subscription active
+   - Check API endpoint availability
+   - Try different job_query parameter
+
+2. "Gemini API error"
+   - Verify OPENROUTER_API_KEY
+   - Check OpenRouter account credits
+   - Confirm model name is available
+   - Check internet connection
+
+3. "Database connection error"
+   - Verify DATABASE_URL format
+   - Check database is running
+   - Confirm credentials
+   - Review alembic migrations
+
+4. "Docker build fails"
+   - Clear Docker cache: docker system prune -a
+   - Rebuild: docker-compose build --no-cache
+   - Check Docker daemon running
+   - Verify disk space available
+
+5. "Port 8000 already in use"
+   - Change port in docker-compose.yml
+   - Or kill process: lsof -i :8000 | kill -9
+
+================================================================================
+                        CONTACT & SUPPORT
+================================================================================
+
+Repository: [GitHub URL]
+Documentation: README.md
+Issues: [GitHub Issues]
+Email: [Support Email]
+
+================================================================================
+                        END OF CODEBASE SUMMARY
+================================================================================
+
+This document provides a complete overview of the CV Matcher V2 codebase
+structure, technologies, and workflows. For detailed information on specific
+components, refer to the inline code documentation and README.md.
+
+Last Generated: May 12, 2026
+Version: 2.0 (Final Production)
