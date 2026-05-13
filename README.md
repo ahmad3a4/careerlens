@@ -453,15 +453,5 @@ If you encounter issues:
 
 ---
 
-## 📄 License
-
-[Add your license here]
-
-## 👥 Contributors
-
-[Add your team members here]
-
----
-
 **Last Updated**: May 12, 2026
 **Version**: 1.0.0
